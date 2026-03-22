@@ -18,7 +18,7 @@ export default async function OrderSuccessPage({ searchParams }: Props) {
         </p>
         <Link
           href="/browse"
-          className={cn(buttonVariants({ variant: "outline" }), "mt-8 rounded-none")}
+          className={cn(buttonVariants({ variant: "outline" }), "mt-8")}
         >
           Browse PDFs
         </Link>
@@ -35,12 +35,12 @@ export default async function OrderSuccessPage({ searchParams }: Props) {
         Your download is ready. The link expires in about 30 minutes for security.
       </p>
       <div className="mt-10 flex flex-col gap-3">
-        <a href={href} className={cn(buttonVariants(), "rounded-none")}>
+        <a href={href} className={cn(buttonVariants())}>
           Download full PDF
         </a>
         <Link
           href={`/p/${slug}`}
-          className={cn(buttonVariants({ variant: "outline" }), "rounded-none")}
+          className={cn(buttonVariants({ variant: "outline" }))}
         >
           Back to product
         </Link>

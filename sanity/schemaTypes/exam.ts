@@ -9,6 +9,7 @@ export const exam = defineType({
       name: "title",
       title: "Title",
       type: "string",
+      description: "Exam or subcategory under the category (e.g. SBI PO).",
       validation: (Rule) => Rule.required(),
     }),
     defineField({
@@ -30,6 +31,13 @@ export const exam = defineType({
       title: "Description",
       type: "text",
       rows: 3,
+    }),
+    defineField({
+      name: "coverImage",
+      title: "Cover image",
+      description: "Optional image for catalog and category cards (subcategory / exam level).",
+      type: "image",
+      options: { hotspot: true },
     }),
     defineField({
       name: "sortOrder",

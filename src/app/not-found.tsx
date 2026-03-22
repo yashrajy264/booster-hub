@@ -10,7 +10,7 @@ export default function NotFound() {
       <p className="mt-4 text-muted-foreground">
         That page does not exist or the catalog has not been published yet.
       </p>
-      <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "mt-8 inline-flex rounded-none")}>
+      <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "mt-8 inline-flex")}>
         Back home
       </Link>
     </div>

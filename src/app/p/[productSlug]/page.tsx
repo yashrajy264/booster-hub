@@ -1,16 +1,26 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { SanityImageSource } from "@sanity/image-url";
+
+import { PdfPreviewFrame, PdfPreviewToolbar } from "@/components/pdf-preview";
 import { PortableBody } from "@/components/portable-body";
 import { buttonVariants } from "@/lib/button-variants";
 import { cn } from "@/lib/utils";
-import { Separator } from "@/components/ui/separator";
 import { formatInrFromPaise } from "@/lib/format-inr";
+import { Separator } from "@/components/ui/separator";
 import { getPublicSanityClient } from "@/sanity/client";
 import { productBySlugPublicQuery } from "@/sanity/queries";
+import { urlForImage } from "@/sanity/image";
 
 export const revalidate = 60;
 
 type Props = { params: Promise<{ productSlug: string }> };
+
+function coverUrl(cover: SanityImageSource | null | undefined) {
+  if (!cover) return null;
+  return urlForImage(cover)?.width(1200).height(640).fit("crop").auto("format").url() ?? null;
+}
 
 export async function generateMetadata({ params }: Props) {
   const { productSlug } = await params;
@@ -37,75 +47,101 @@ export default async function ProductPage({ params }: Props) {
     product.accessMode === "free"
       ? "Free"
       : formatInrFromPaise(Math.max(0, Number(product.pricePaise ?? 0)));
+  const hero = coverUrl(product.coverImage);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
       <nav className="text-sm text-muted-foreground">
-        <Link href="/browse" className="hover:text-foreground">
-          Browse
+        <Link href="/" className="transition-colors hover:text-foreground">
+          Home
         </Link>
         <span className="mx-2">/</span>
-        <Link href={listHref} className="hover:text-foreground">
+        <Link href={`/${product.categorySlug}`} className="transition-colors hover:text-foreground">
+          {product.categoryTitle}
+        </Link>
+        <span className="mx-2">/</span>
+        <Link href={listHref} className="transition-colors hover:text-foreground">
           {product.examTitle}
         </Link>
       </nav>
 
-      <div className="mt-6 flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-        <div className="max-w-xl space-y-4">
+      {hero ? (
+        <div className="relative mt-8 aspect-[21/9] w-full overflow-hidden rounded-2xl border border-border/80 shadow-md">
+          <Image
+            src={hero}
+            alt=""
+            fill
+            className="object-cover"
+            priority
+            sizes="(max-width: 1200px) 100vw, 1200px"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
+        </div>
+      ) : null}
+
+      <div
+        className={cn(
+          "mt-10 flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-12",
+          !hero && "mt-8",
+        )}
+      >
+        <div className="max-w-2xl space-y-4">
           <h1 className="font-heading text-3xl tracking-tight sm:text-4xl">{product.title}</h1>
           <p className="text-sm text-muted-foreground">
             {product.categoryTitle} · {product.examTitle}
           </p>
           {product.shortDescription ? (
-            <p className="text-muted-foreground">{product.shortDescription}</p>
+            <p className="text-lg leading-relaxed text-muted-foreground">{product.shortDescription}</p>
           ) : null}
         </div>
-        <div className="flex w-full shrink-0 flex-col gap-3 border border-border p-4 lg:w-72">
-          <p className="font-heading text-2xl tracking-tight">{priceLabel}</p>
+        <div className="flex w-full shrink-0 flex-col gap-4 rounded-2xl border border-border/80 bg-card p-6 shadow-sm lg:w-80">
+          <p className="font-heading text-3xl tracking-tight text-foreground">{priceLabel}</p>
           <Separator />
           {product.accessMode === "paid" ? (
             <Link
               href={`/checkout/${product.slug}`}
-              className={cn(buttonVariants(), "rounded-none")}
+              className={cn(buttonVariants({ size: "lg" }), "w-full justify-center")}
             >
               Buy with Razorpay
             </Link>
           ) : (
             <a
               href={`/api/download?slug=${encodeURIComponent(product.slug)}`}
-              className={cn(buttonVariants(), "rounded-none")}
+              className={cn(buttonVariants({ size: "lg" }), "w-full justify-center")}
             >
               Download full PDF
             </a>
           )}
           {product.accessMode === "paid" ? (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               No account. Pay once, download instantly after payment.
             </p>
           ) : null}
         </div>
       </div>
 
-      <section className="mt-12 space-y-4">
-        <h2 className="font-heading text-xl tracking-tight">Sample preview</h2>
-        <div className="aspect-[3/4] w-full max-w-3xl border border-border bg-muted/30">
-          <iframe
-            title="PDF preview"
-            src={`${product.previewPdfUrl}#view=FitH`}
-            className="h-full min-h-[480px] w-full"
-          />
+      <section className="mt-14 space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="font-heading text-xl tracking-tight sm:text-2xl">Sample preview</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              If the preview does not load, open it in a new tab — some browsers block embedded PDFs.
+            </p>
+          </div>
+          <PdfPreviewToolbar previewUrl={product.previewPdfUrl} productTitle={product.title} />
         </div>
+        <PdfPreviewFrame previewUrl={product.previewPdfUrl} productTitle={product.title} />
         <p className="text-sm text-muted-foreground">
-          <a href={product.previewPdfUrl} className="underline">
+          <a href={product.previewPdfUrl} className="font-medium text-primary underline underline-offset-4">
             Open preview in new tab
           </a>
         </p>
       </section>
 
       {product.body ? (
-        <section className="mt-16">
-          <h2 className="font-heading text-xl tracking-tight">About this pack</h2>
-          <div className="mt-6">
+        <section className="mt-16 border-t border-border/60 pt-12">
+          <h2 className="font-heading text-xl tracking-tight sm:text-2xl">About this pack</h2>
+          <div className="mt-6 max-w-3xl">
             <PortableBody value={product.body} />
           </div>
         </section>

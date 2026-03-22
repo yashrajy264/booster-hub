@@ -1,5 +1,14 @@
 import { defineField, defineType } from "sanity";
 
+function hasAsset(file: unknown): boolean {
+  return Boolean(
+    file &&
+      typeof file === "object" &&
+      "asset" in file &&
+      (file as { asset?: { _ref?: string } }).asset?._ref,
+  );
+}
+
 export const product = defineType({
   name: "product",
   title: "PDF product",
@@ -9,6 +18,7 @@ export const product = defineType({
       name: "title",
       title: "Title",
       type: "string",
+      description: "PDF pack name (e.g. SBI PO Quant). Linked to one exam.",
       validation: (Rule) => Rule.required(),
     }),
     defineField({
@@ -24,6 +34,20 @@ export const product = defineType({
       type: "reference",
       to: [{ type: "exam" }],
       validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "sortOrder",
+      title: "Sort order",
+      description: "Lower numbers appear first in the exam catalog.",
+      type: "number",
+      initialValue: 0,
+    }),
+    defineField({
+      name: "coverImage",
+      title: "Cover image",
+      description: "Shown on cards and the product page.",
+      type: "image",
+      options: { hotspot: true },
     }),
     defineField({
       name: "shortDescription",
@@ -58,19 +82,46 @@ export const product = defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
+      name: "previewPdfFile",
+      title: "Preview PDF (upload)",
+      description: "Sample pages for the public preview. Preferred over URL.",
+      type: "file",
+      options: { accept: "application/pdf" },
+    }),
+    defineField({
       name: "previewPdfUrl",
-      title: "Preview / sample PDF URL",
-      description: "Public URL for students to preview (sample pages).",
+      title: "Preview / sample PDF URL (legacy)",
+      description: "Optional if you uploaded a preview PDF above.",
       type: "url",
-      validation: (Rule) => Rule.required(),
+      validation: (Rule) =>
+        Rule.custom((value, context) => {
+          const parent = context.parent as {
+            previewPdfFile?: unknown;
+          };
+          if (value || hasAsset(parent?.previewPdfFile)) return true;
+          return "Upload a preview PDF or enter a preview URL";
+        }),
+    }),
+    defineField({
+      name: "fullPdfFile",
+      title: "Full PDF (upload)",
+      description: "Complete file. Not shown on the public site; used for download after purchase or when free.",
+      type: "file",
+      options: { accept: "application/pdf" },
     }),
     defineField({
       name: "fullPdfUrl",
-      title: "Full PDF URL (server-only)",
-      description:
-        "Not exposed on the public site. Served only after payment (paid) or immediately (free).",
+      title: "Full PDF URL (legacy)",
+      description: "Optional if you uploaded the full PDF above.",
       type: "url",
-      validation: (Rule) => Rule.required(),
+      validation: (Rule) =>
+        Rule.custom((value, context) => {
+          const parent = context.parent as {
+            fullPdfFile?: unknown;
+          };
+          if (value || hasAsset(parent?.fullPdfFile)) return true;
+          return "Upload the full PDF or enter a full PDF URL";
+        }),
     }),
     defineField({
       name: "featured",
@@ -91,9 +142,13 @@ export const product = defineType({
     }),
   ],
   preview: {
-    select: { title: "title", access: "accessMode" },
-    prepare({ title, access }) {
-      return { title: title ?? "Untitled", subtitle: access };
+    select: { title: "title", access: "accessMode", media: "coverImage" },
+    prepare({ title, access, media }) {
+      return {
+        title: title ?? "Untitled",
+        subtitle: access,
+        media,
+      };
     },
   },
 });

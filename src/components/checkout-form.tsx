@@ -75,7 +75,7 @@ export function CheckoutForm({
         key: keyId,
         amount,
         currency: currency ?? "INR",
-        name: "BoosterHub",
+        name: "PrepareUp",
         description: title,
         order_id: orderId,
         prefill: { email: trimmed },
@@ -105,7 +105,7 @@ export function CheckoutForm({
             setBusy(false);
           }
         },
-        theme: { color: "#171717" },
+        theme: { color: "#3d9a82" },
         modal: { ondismiss: () => setBusy(false) },
       };
 
@@ -138,14 +138,14 @@ export function CheckoutForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
-          className="rounded-none border-border"
+          className="border-border"
         />
         <p className="text-xs text-muted-foreground">Used for your receipt and support only. No account is created.</p>
       </div>
       {message ? <p className="text-sm text-destructive">{message}</p> : null}
       <Button
         type="button"
-        className="w-full rounded-none"
+        className="w-full"
         disabled={busy}
         onClick={() => void pay()}
       >

@@ -9,6 +9,7 @@ export const category = defineType({
       name: "title",
       title: "Title",
       type: "string",
+      description: "Top-level group (e.g. Banking, SSC).",
       validation: (Rule) => Rule.required(),
     }),
     defineField({
@@ -29,6 +30,13 @@ export const category = defineType({
       title: "Sort order",
       type: "number",
       initialValue: 0,
+    }),
+    defineField({
+      name: "coverImage",
+      title: "Cover image",
+      description: "Optional hero image for the category hub and browse cards.",
+      type: "image",
+      options: { hotspot: true },
     }),
     defineField({
       name: "seoTitle",

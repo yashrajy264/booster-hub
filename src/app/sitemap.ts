@@ -8,6 +8,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: base, lastModified: new Date() },
     { url: `${base}/browse`, lastModified: new Date() },
+    { url: `${base}/about`, lastModified: new Date() },
     { url: `${base}/legal`, lastModified: new Date() },
   ];
 
@@ -18,7 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const categories = (await client.fetch(categoriesQuery)) as { slug: string }[];
   const categoryUrls = categories.map((c) => ({
-    url: `${base}/browse#${c.slug}`,
+    url: `${base}/${c.slug}`,
     lastModified: new Date(),
   }));
 

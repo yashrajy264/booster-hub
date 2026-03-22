@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 
+import { SITE_NAME } from "@/lib/site";
+
 export const metadata: Metadata = {
   title: "Legal & support",
-  description: "Refund policy, contact, and terms for BoosterHub.",
+  description: `Refund policy, contact, and terms for ${SITE_NAME}.`,
 };
 
 export default function LegalPage() {

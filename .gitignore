@@ -20,6 +20,10 @@
 # production
 /build
 
+# local / tooling
+.cursor/
+.sanity/
+
 # misc
 .DS_Store
 *.pem
