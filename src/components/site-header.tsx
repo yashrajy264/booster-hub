@@ -23,7 +23,7 @@ export function SiteHeader({ categories = [] }: { categories?: NavCategory[] }) 
   const categoryLinks = categories.slice(0, MAX_CATEGORY_LINKS);
 
   return (
-    <div className="sticky top-4 z-50 px-4 sm:px-6">
+    <div className="sticky top-4 z-50 px-4 sm:px-6" data-site-header>
       <header className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 rounded-full border border-border/80 bg-background/90 px-4 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/60 sm:px-6">
         <Link
           href="/"

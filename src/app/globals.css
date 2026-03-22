@@ -129,3 +129,9 @@
     @apply font-sans;
   }
 }
+
+/* If marketing layout ever wraps /studio (stale deploy or layout bug), hide site chrome — Studio stays in <main>. */
+body:has([data-sanity-studio-root]) [data-site-header],
+body:has([data-sanity-studio-root]) [data-site-footer] {
+  display: none !important;
+}

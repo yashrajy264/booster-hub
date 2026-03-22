@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Instrument_Serif } from "next/font/google";
-import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
 import { SITE_NAME } from "@/lib/site";
-import { getPublicSanityClient } from "@/sanity/client";
-import { categoriesQuery } from "@/sanity/queries";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -29,16 +25,11 @@ export const metadata: Metadata = {
     "Affordable PDF study packs for government jobs and competitive exams — current affairs, MCQs, and more.",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const client = getPublicSanityClient();
-  const categories = client
-    ? ((await client.fetch(categoriesQuery)) as { title: string; slug: string }[])
-    : [];
-
   return (
     <html
       lang="en"
@@ -49,9 +40,7 @@ export default async function RootLayout({
         suppressHydrationWarning
         className="flex min-h-full flex-col bg-background font-sans text-foreground"
       >
-        <SiteHeader categories={categories} />
-        <main className="flex-1">{children}</main>
-        <SiteFooter />
+        {children}
       </body>
     </html>
   );
