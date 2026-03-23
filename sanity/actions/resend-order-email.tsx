@@ -3,24 +3,6 @@
 import { useState } from "react";
 import type { DocumentActionComponent } from "sanity";
 
-const SESSION_KEY = "prepareup:order-resend-api-key";
-
-function getApiKey(): string | null {
-  if (typeof window === "undefined") return null;
-  const key = window.sessionStorage.getItem(SESSION_KEY)?.trim();
-  return key || null;
-}
-
-function askForApiKey(): string | null {
-  if (typeof window === "undefined") return null;
-  const entered = window.prompt("Enter ORDER_RESEND_API_KEY to resend this confirmation email:");
-  if (!entered) return null;
-  const key = entered.trim();
-  if (!key) return null;
-  window.sessionStorage.setItem(SESSION_KEY, key);
-  return key;
-}
-
 export const ResendOrderEmailAction: DocumentActionComponent = (props) => {
   const [busy, setBusy] = useState(false);
   const orderId = props.published?._id || props.draft?._id || props.id;
@@ -42,33 +24,17 @@ export const ResendOrderEmailAction: DocumentActionComponent = (props) => {
         return;
       }
 
-      let apiKey = getApiKey();
-      if (!apiKey) {
-        apiKey = askForApiKey();
-      }
-      if (!apiKey) {
-        props.onComplete();
-        return;
-      }
-
       setBusy(true);
       try {
         const response = await fetch("/api/admin/orders/resend-confirmation", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-order-resend-key": apiKey,
-          },
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
           body: JSON.stringify({ orderId }),
         });
         const data = (await response.json()) as { error?: string };
         if (!response.ok) {
-          if (response.status === 401) {
-            window.sessionStorage.removeItem(SESSION_KEY);
-            window.alert("Invalid resend key. Please retry and enter ORDER_RESEND_API_KEY again.");
-          } else {
-            window.alert(data.error ?? "Failed to resend email.");
-          }
+          window.alert(data.error ?? "Failed to resend email.");
           return;
         }
         window.alert("Confirmation email resent successfully.");

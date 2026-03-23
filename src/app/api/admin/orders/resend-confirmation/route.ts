@@ -24,16 +24,12 @@ const orderByIdForResendQuery = `
   }
 `;
 
+/**
+ * Resend order confirmation from embedded Studio (/studio).
+ * Auth is assumed to be Sanity Studio login + restricting who can access the app.
+ * Do not expose this deployment broadly without additional protection if abuse is a concern.
+ */
 export async function POST(request: Request) {
-  const expectedKey = process.env.ORDER_RESEND_API_KEY?.trim();
-  if (!expectedKey) {
-    return NextResponse.json({ error: "ORDER_RESEND_API_KEY is missing" }, { status: 503 });
-  }
-  const providedKey = request.headers.get("x-order-resend-key")?.trim();
-  if (!providedKey || providedKey !== expectedKey) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   let body: ResendBody;
   try {
     body = await request.json();
