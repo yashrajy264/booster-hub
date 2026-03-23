@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { signDownloadToken } from "@/lib/download-token";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { verifyPaymentSignature } from "@/lib/razorpay";
-import { orderByPaymentIdQuery, productBySlugPublicQuery } from "@/sanity/queries";
+import { orderByPaymentIdQuery, productBySlugFullQuery } from "@/sanity/queries";
 import { getServerSanityClient, getWriteSanityClient } from "@/sanity/server";
 
 export async function POST(request: Request) {
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "CMS not configured" }, { status: 503 });
   }
 
-  const product = await readClient.fetch(productBySlugPublicQuery, { slug: productSlug.trim() });
+  const product = await readClient.fetch(productBySlugFullQuery, { slug: productSlug.trim() });
   if (!product || product.accessMode !== "paid") {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
@@ -91,6 +91,7 @@ export async function POST(request: Request) {
       razorpayPaymentId: razorpay_payment_id,
       status: "paid",
       fulfilledAt: new Date().toISOString(),
+      downloadCount: 0,
     });
     orderId = created._id as string;
     customerEmail = email;
@@ -103,12 +104,29 @@ export async function POST(request: Request) {
 
   const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
   const downloadUrl = `${baseUrl}/api/download?slug=${encodeURIComponent(product.slug)}&token=${encodeURIComponent(downloadToken)}`;
+  const bundleItems = Array.isArray(product.bundleItems)
+    ? product.bundleItems.filter((entry: { fullPdfUrl?: string }) => Boolean(entry?.fullPdfUrl))
+    : [];
+  const deliveryMode = product.deliveryMode === "bundle" ? "bundle" : "single";
+  const bundleZipUrl =
+    deliveryMode === "bundle"
+      ? `${baseUrl}/api/download/bundle?slug=${encodeURIComponent(product.slug)}&token=${encodeURIComponent(downloadToken)}`
+      : undefined;
+  const bundleItemLinks =
+    deliveryMode === "bundle"
+      ? bundleItems.map((item: { title?: string }, index: number) => ({
+          title: item.title ?? `PDF ${index + 1}`,
+          url: `${baseUrl}/api/download?slug=${encodeURIComponent(product.slug)}&token=${encodeURIComponent(downloadToken)}&item=${index}`,
+        }))
+      : undefined;
   if (customerEmail) {
     const emailResult = await sendOrderConfirmationEmail({
       to: customerEmail,
       productTitle: product.title,
       amountPaise: expectedAmount,
       downloadUrl,
+      bundleZipUrl,
+      bundleItemLinks,
       orderId,
     });
     if (emailResult.ok) {
@@ -131,5 +149,10 @@ export async function POST(request: Request) {
     console.warn("[verify] confirmation email skipped: missing customer email", { orderId });
   }
 
-  return NextResponse.json({ downloadToken, orderId });
+  return NextResponse.json({
+    downloadToken,
+    orderId,
+    deliveryMode,
+    bundleItemCount: bundleItems.length,
+  });
 }

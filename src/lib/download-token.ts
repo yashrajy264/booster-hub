@@ -20,7 +20,7 @@ export async function signDownloadToken(claims: DownloadClaims): Promise<string>
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("30m")
+    .setExpirationTime("24h")
     .sign(getSecret());
 }
 

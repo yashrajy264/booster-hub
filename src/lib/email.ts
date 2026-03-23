@@ -5,6 +5,8 @@ type ConfirmationEmailInput = {
   productTitle: string;
   amountPaise: number;
   downloadUrl: string;
+  bundleZipUrl?: string;
+  bundleItemLinks?: Array<{ title: string; url: string }>;
   orderId: string;
 };
 
@@ -50,6 +52,12 @@ export async function sendOrderConfirmationEmail(
   const amountLabel = formatInrFromPaise(input.amountPaise);
   const invoiceDate = new Date().toISOString().slice(0, 10);
   const invoiceId = `INV-${input.orderId}`;
+  const bundleLinksHtml = (input.bundleItemLinks ?? [])
+    .map(
+      (item) =>
+        `<li style="margin:0 0 6px"><a href="${item.url}" style="color:#1f5c50;text-decoration:underline">${item.title}</a></li>`,
+    )
+    .join("");
 
   try {
     const response = await resend.emails.send({
@@ -67,6 +75,8 @@ export async function sendOrderConfirmationEmail(
           INVOICE_ID: invoiceId,
           INVOICE_DATE: invoiceDate,
           DOWNLOAD_URL: input.downloadUrl,
+          BUNDLE_ZIP_URL: input.bundleZipUrl || "",
+          BUNDLE_LINKS_HTML: bundleLinksHtml,
           SUPPORT_EMAIL: supportEmail || "support@exami.co.in",
         },
       },

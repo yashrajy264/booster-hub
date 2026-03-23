@@ -76,6 +76,7 @@ export function CheckoutForm({
         amount,
         currency: currency ?? "INR",
         name: "PrepareUp",
+        image: "https://res.cloudinary.com/dxagqdmxy/image/upload/v1774288117/PrepareUp_2_qavdvp.png",
         description: title,
         order_id: orderId,
         prefill: { email: trimmed },

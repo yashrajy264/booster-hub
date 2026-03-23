@@ -52,6 +52,17 @@ export const order = defineType({
       type: "datetime",
     }),
     defineField({
+      name: "downloadCount",
+      title: "Download count",
+      type: "number",
+      initialValue: 0,
+    }),
+    defineField({
+      name: "lastDownloadedAt",
+      title: "Last downloaded at",
+      type: "datetime",
+    }),
+    defineField({
       name: "confirmationEmailSentAt",
       title: "Confirmation email sent at",
       type: "datetime",

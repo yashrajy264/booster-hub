@@ -1,14 +1,19 @@
+import JSZip from "jszip";
 import { NextResponse } from "next/server";
 import { consumeDownloadAllowance } from "@/lib/download-limits";
 import { verifyDownloadToken } from "@/lib/download-token";
 import { productBySlugFullQuery } from "@/sanity/queries";
 import { getServerSanityClient } from "@/sanity/server";
 
+type BundleItem = {
+  title?: string;
+  fullPdfUrl?: string;
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const slug = searchParams.get("slug")?.trim();
   const token = searchParams.get("token")?.trim();
-  const itemParam = searchParams.get("item")?.trim();
 
   if (!slug) {
     return NextResponse.json({ error: "Missing slug" }, { status: 400 });
@@ -23,53 +28,11 @@ export async function GET(request: Request) {
   if (!product) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-
-  const deliveryMode = product.deliveryMode === "bundle" ? "bundle" : "single";
-  const isPaid = product.accessMode === "paid";
-  const itemIndex = itemParam ? Number.parseInt(itemParam, 10) : null;
-
-  if (deliveryMode === "single") {
-    if (!product.fullPdfUrl) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
-    if (isPaid) {
-      const auth = await authorizePaidDownload({
-        client,
-        token,
-        productId: product._id,
-      });
-      if ("error" in auth) return auth.error;
-      const consume = await consumeDownloadAllowance({
-        orderId: auth.claims.orderId,
-        productId: auth.claims.productId,
-      });
-      if (!consume.ok) {
-        return NextResponse.json({ error: consume.error }, { status: consume.status });
-      }
-    }
-    return proxyPdf(product.fullPdfUrl, product.slug ?? slug);
+  if (product.deliveryMode !== "bundle") {
+    return NextResponse.json({ error: "This product is not a bundle" }, { status: 400 });
   }
 
-  const bundleItems = Array.isArray(product.bundleItems)
-    ? product.bundleItems.filter((entry: { fullPdfUrl?: string }) => Boolean(entry?.fullPdfUrl))
-    : [];
-  if (bundleItems.length === 0) {
-    return NextResponse.json({ error: "Bundle items not found" }, { status: 404 });
-  }
-
-  if (itemIndex == null || Number.isNaN(itemIndex)) {
-    return NextResponse.json(
-      { error: "For bundles, provide item index (?item=0) or use /api/download/bundle" },
-      { status: 400 },
-    );
-  }
-
-  const item = bundleItems[itemIndex];
-  if (!item?.fullPdfUrl) {
-    return NextResponse.json({ error: "Bundle item not found" }, { status: 404 });
-  }
-
-  if (isPaid) {
+  if (product.accessMode === "paid") {
     const auth = await authorizePaidDownload({
       client,
       token,
@@ -85,25 +48,44 @@ export async function GET(request: Request) {
     }
   }
 
-  const itemTitle = item.title ?? `bundle-item-${itemIndex + 1}`;
-  return proxyPdf(item.fullPdfUrl, `${product.slug ?? slug}-${itemTitle}`);
-}
-
-async function proxyPdf(url: string, filenameBase: string) {
-  const upstream = await fetch(url, { next: { revalidate: 0 } });
-  if (!upstream.ok) {
-    return NextResponse.json({ error: "Could not fetch PDF" }, { status: 502 });
+  const bundleItems = Array.isArray(product.bundleItems)
+    ? product.bundleItems.filter((entry: BundleItem) => Boolean(entry?.fullPdfUrl))
+    : [];
+  if (bundleItems.length === 0) {
+    return NextResponse.json({ error: "Bundle items not found" }, { status: 404 });
   }
-  const buf = await upstream.arrayBuffer();
-  const safe = filenameBase.replace(/[^a-zA-Z0-9-_]/g, "_") || "document";
-  return new NextResponse(buf, {
+
+  const zip = new JSZip();
+  for (let i = 0; i < bundleItems.length; i += 1) {
+    const item = bundleItems[i];
+    const url = item?.fullPdfUrl;
+    if (!url) continue;
+    const upstream = await fetch(url, { next: { revalidate: 0 } });
+    if (!upstream.ok) {
+      return NextResponse.json(
+        { error: `Could not fetch bundle item ${i + 1}` },
+        { status: 502 },
+      );
+    }
+    const buffer = await upstream.arrayBuffer();
+    const base = sanitizeFilename(item?.title || `bundle-item-${i + 1}`);
+    zip.file(`${String(i + 1).padStart(2, "0")}-${base}.pdf`, buffer);
+  }
+
+  const bundleBuffer = await zip.generateAsync({ type: "arraybuffer", compression: "DEFLATE" });
+  const safe = sanitizeFilename(product.slug ?? slug) || "bundle";
+  return new NextResponse(bundleBuffer, {
     status: 200,
     headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${safe}.pdf"`,
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="${safe}.zip"`,
       "Cache-Control": "private, no-store",
     },
   });
+}
+
+function sanitizeFilename(value: string): string {
+  return value.replace(/[^a-zA-Z0-9-_]/g, "_");
 }
 
 async function authorizePaidDownload({

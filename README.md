@@ -40,7 +40,16 @@ This runs `sanity dev` and opens the Studio. In the **Catalog** group you can:
 1. **Categories** — title, slug, description, optional cover image, sort order, SEO.
 2. **Exams** — link each exam to a category; set sort order and SEO.
 3. **PDF products** — title, slug, exam, **sort order** (listing order), **cover image**, short and rich description, price/access (free vs paid).
-4. **PDFs** — upload **Preview PDF** and **Full PDF** files, or use the legacy URL fields until files are uploaded. At least one source is required for preview and for full PDF respectively.
+4. **PDF delivery setup**:
+   - Set **Delivery mode** to `Single PDF` for the existing one-file flow.
+   - Set **Delivery mode** to `Bundle (PDF kit)` to sell multiple PDFs in one product.
+   - For all products, upload **Preview PDF** (or preview URL/range) for public preview.
+   - For `Single PDF`, upload **Full PDF** (or legacy full URL).
+   - For `Bundle`, add one or more **Bundle PDFs** items (title + uploaded file or URL).
+
+Bundle download behavior:
+- **Paid bundle:** customer gets secure time-limited links for both `Download kit (.zip)` and individual PDF files.
+- **Free bundle:** same ZIP + individual file links work without payment token.
 
 Orders are listed under **Orders**.
 

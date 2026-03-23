@@ -13,6 +13,13 @@ function hasPreviewRange(value: { previewStartPage?: unknown; previewEndPage?: u
   return Number.isInteger(value?.previewStartPage) && Number.isInteger(value?.previewEndPage);
 }
 
+function hasBundleItemSources(
+  items: Array<{ fullPdfFile?: unknown; fullPdfUrl?: string } | undefined> | undefined,
+): boolean {
+  if (!Array.isArray(items) || items.length === 0) return false;
+  return items.some((item) => Boolean(item && (hasAsset(item.fullPdfFile) || item.fullPdfUrl)));
+}
+
 export const product = defineType({
   name: "product",
   title: "PDF product",
@@ -83,6 +90,21 @@ export const product = defineType({
         layout: "radio",
       },
       initialValue: "paid",
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "deliveryMode",
+      title: "Delivery mode",
+      description: "Choose whether this product delivers one PDF or a multi-PDF bundle.",
+      type: "string",
+      options: {
+        list: [
+          { title: "Single PDF", value: "single" },
+          { title: "Bundle (PDF kit)", value: "bundle" },
+        ],
+        layout: "radio",
+      },
+      initialValue: "single",
       validation: (Rule) => Rule.required(),
     }),
     defineField({
@@ -173,9 +195,76 @@ export const product = defineType({
         Rule.custom((value, context) => {
           const parent = context.parent as {
             fullPdfFile?: unknown;
+            deliveryMode?: string;
           };
+          if (parent?.deliveryMode === "bundle") return true;
           if (value || hasAsset(parent?.fullPdfFile)) return true;
           return "Upload the full PDF or enter a full PDF URL";
+        }),
+    }),
+    defineField({
+      name: "bundleItems",
+      title: "Bundle PDFs",
+      description: "Add each PDF included in this kit. Used when delivery mode is Bundle.",
+      type: "array",
+      hidden: ({ parent }) => (parent as { deliveryMode?: string } | undefined)?.deliveryMode !== "bundle",
+      of: [
+        defineField({
+          name: "item",
+          title: "Bundle item",
+          type: "object",
+          fields: [
+            defineField({
+              name: "title",
+              title: "PDF title",
+              type: "string",
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: "sortOrder",
+              title: "Sort order",
+              type: "number",
+              initialValue: 0,
+            }),
+            defineField({
+              name: "fullPdfFile",
+              title: "Full PDF (upload)",
+              type: "file",
+              options: { accept: "application/pdf" },
+            }),
+            defineField({
+              name: "fullPdfUrl",
+              title: "Full PDF URL (legacy)",
+              type: "url",
+              description: "Optional if you uploaded the full PDF above.",
+              validation: (Rule) =>
+                Rule.custom((value, context) => {
+                  const item = context.parent as { fullPdfFile?: unknown } | undefined;
+                  if (value || hasAsset(item?.fullPdfFile)) return true;
+                  return "Upload the full PDF or enter a full PDF URL";
+                }),
+            }),
+          ],
+          preview: {
+            select: { title: "title", subtitle: "fullPdfUrl" },
+            prepare({ title, subtitle }) {
+              return {
+                title: title ?? "Untitled PDF",
+                subtitle: subtitle ?? "Uploaded file",
+              };
+            },
+          },
+        }),
+      ],
+      validation: (Rule) =>
+        Rule.custom((value, context) => {
+          const parent = context.parent as {
+            deliveryMode?: string;
+            bundleItems?: Array<{ fullPdfFile?: unknown; fullPdfUrl?: string } | undefined>;
+          };
+          if (parent?.deliveryMode !== "bundle") return true;
+          if (hasBundleItemSources(parent?.bundleItems) || hasBundleItemSources(value as never)) return true;
+          return "Add at least one bundle PDF with uploaded file or URL";
         }),
     }),
     defineField({

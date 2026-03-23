@@ -8,6 +8,15 @@ const coverImageFields = `
   }
 `;
 
+const bundleItemFields = `
+  "bundleItems": coalesce(bundleItems, [])[]{
+    _key,
+    title,
+    sortOrder,
+    "fullPdfUrl": coalesce(fullPdfFile.asset->url, fullPdfUrl)
+  }
+`;
+
 export const categoriesQuery = defineQuery(`
   *[_type == "category"] | order(sortOrder asc, title asc) {
     _id,
@@ -75,6 +84,8 @@ const productCardFields = `
     shortDescription,
     pricePaise,
     accessMode,
+    "deliveryMode": coalesce(deliveryMode, "single"),
+    "bundleItemCount": count(coalesce(bundleItems, [])),
     "previewPdfUrl": coalesce(previewPdfFile.asset->url, previewPdfUrl),
     featured,
     ${coverImageFields},
@@ -92,6 +103,8 @@ const productCatalogFields = `
     shortDescription,
     pricePaise,
     accessMode,
+    "deliveryMode": coalesce(deliveryMode, "single"),
+    "bundleItemCount": count(coalesce(bundleItems, [])),
     ${coverImageFields},
     "examSlug": exam->slug.current,
     "categorySlug": exam->category->slug.current,
@@ -187,6 +200,8 @@ export const productBySlugPublicQuery = defineQuery(`
     body,
     pricePaise,
     accessMode,
+    "deliveryMode": coalesce(deliveryMode, "single"),
+    "bundleItemCount": count(coalesce(bundleItems, [])),
     "previewPdfUrl": coalesce(previewPdfFile.asset->url, previewPdfUrl),
     previewStartPage,
     previewEndPage,
@@ -213,6 +228,8 @@ export const productByHierarchySlugsQuery = defineQuery(`
     body,
     pricePaise,
     accessMode,
+    "deliveryMode": coalesce(deliveryMode, "single"),
+    "bundleItemCount": count(coalesce(bundleItems, [])),
     "previewPdfUrl": coalesce(previewPdfFile.asset->url, previewPdfUrl),
     previewStartPage,
     previewEndPage,
@@ -232,8 +249,10 @@ export const productBySlugPreviewQuery = defineQuery(`
     _id,
     title,
     "slug": slug.current,
+    "deliveryMode": coalesce(deliveryMode, "single"),
     "manualPreviewPdfUrl": coalesce(previewPdfFile.asset->url, previewPdfUrl),
     "fullPdfUrl": coalesce(fullPdfFile.asset->url, fullPdfUrl),
+    ${bundleItemFields},
     previewStartPage,
     previewEndPage
   }
@@ -246,7 +265,9 @@ export const productByIdFullQuery = defineQuery(`
     title,
     "slug": slug.current,
     accessMode,
+    "deliveryMode": coalesce(deliveryMode, "single"),
     "fullPdfUrl": coalesce(fullPdfFile.asset->url, fullPdfUrl),
+    ${bundleItemFields},
     pricePaise
   }
 `);
@@ -257,7 +278,9 @@ export const productBySlugFullQuery = defineQuery(`
     title,
     "slug": slug.current,
     accessMode,
+    "deliveryMode": coalesce(deliveryMode, "single"),
     "fullPdfUrl": coalesce(fullPdfFile.asset->url, fullPdfUrl),
+    ${bundleItemFields},
     pricePaise
   }
 `);

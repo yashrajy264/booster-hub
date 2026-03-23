@@ -58,6 +58,21 @@ const payload = {
                     Download your PDF
                   </a>
                 </div>
+                {{#if BUNDLE_ZIP_URL}}
+                <div style="padding-top:10px">
+                  <a href="{{{BUNDLE_ZIP_URL}}}" style="display:inline-block;background:#ffffff;color:#163a33;text-decoration:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;border:1px solid #7ddfba">
+                    Download full kit (.zip)
+                  </a>
+                </div>
+                {{/if}}
+                {{#if BUNDLE_LINKS_HTML}}
+                <div style="margin-top:12px;background:#f6fffb;border:1px solid #d5f3ea;border-radius:8px;padding:12px">
+                  <p style="margin:0 0 8px;color:#365e55;font-size:13px"><strong>Individual PDFs:</strong></p>
+                  <ul style="margin:0;padding-left:18px;font-size:13px;color:#1f5c50">
+                    {{{BUNDLE_LINKS_HTML}}}
+                  </ul>
+                </div>
+                {{/if}}
                 <p style="margin:18px 0 6px;color:#4e7168;font-size:13px">If the button does not work, use this link:</p>
                 <p style="margin:0 0 16px;word-break:break-all;font-size:12px"><a href="{{{DOWNLOAD_URL}}}" style="color:#1f5c50">{{{DOWNLOAD_URL}}}</a></p>
                 <p style="margin:0;color:#4e7168;font-size:13px">Need help? Contact us at <a href="mailto:{{{SUPPORT_EMAIL}}}" style="color:#1f5c50">{{{SUPPORT_EMAIL}}}</a>.</p>
@@ -78,6 +93,8 @@ const payload = {
     { key: "INVOICE_ID", type: "string", fallbackValue: "INV-ORDER_ID" },
     { key: "INVOICE_DATE", type: "string", fallbackValue: "1970-01-01" },
     { key: "DOWNLOAD_URL", type: "string", fallbackValue: "https://example.com/download" },
+    { key: "BUNDLE_ZIP_URL", type: "string", fallbackValue: "" },
+    { key: "BUNDLE_LINKS_HTML", type: "string", fallbackValue: "" },
     { key: "SUPPORT_EMAIL", type: "string", fallbackValue: "support@example.com" },
     { key: "LOGO_URL", type: "string", fallbackValue: "https://res.cloudinary.com/dxagqdmxy/image/upload/v1774288643/PrepareUp_3_ad5zb8.png" },
   ],
