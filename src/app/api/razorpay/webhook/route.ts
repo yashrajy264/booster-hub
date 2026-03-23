@@ -1,5 +1,7 @@
 import Razorpay from "razorpay";
 import { NextResponse } from "next/server";
+import { signDownloadToken } from "@/lib/download-token";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 import { verifyWebhookSignature } from "@/lib/razorpay";
 import { orderByPaymentIdQuery, productByIdFullQuery } from "@/sanity/queries";
 import { getServerSanityClient, getWriteSanityClient } from "@/sanity/server";
@@ -75,7 +77,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true, ignored: "amount mismatch" });
   }
 
-  await writeClient.create({
+  const created = await writeClient.create({
     _type: "order",
     email,
     product: { _type: "reference", _ref: product._id },
@@ -85,6 +87,55 @@ export async function POST(request: Request) {
     status: "paid",
     fulfilledAt: new Date().toISOString(),
   });
+
+  const orderId = created._id as string;
+  const downloadToken = await signDownloadToken({
+    orderId,
+    productId: product._id,
+  });
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const downloadUrl = `${baseUrl}/api/download?slug=${encodeURIComponent(product.slug)}&token=${encodeURIComponent(downloadToken)}`;
+  const bundleItems = Array.isArray(product.bundleItems)
+    ? product.bundleItems.filter((entry: { fullPdfUrl?: string }) => Boolean(entry?.fullPdfUrl))
+    : [];
+  const deliveryMode = product.deliveryMode === "bundle" ? "bundle" : "single";
+  const bundleZipUrl =
+    deliveryMode === "bundle"
+      ? `${baseUrl}/api/download/bundle?slug=${encodeURIComponent(product.slug)}&token=${encodeURIComponent(downloadToken)}`
+      : undefined;
+  const bundleItemLinks =
+    deliveryMode === "bundle"
+      ? bundleItems.map((item: { title?: string }, index: number) => ({
+          title: item.title ?? `PDF ${index + 1}`,
+          url: `${baseUrl}/api/download?slug=${encodeURIComponent(product.slug)}&token=${encodeURIComponent(downloadToken)}&item=${index}`,
+        }))
+      : undefined;
+
+  const emailResult = await sendOrderConfirmationEmail({
+    to: email,
+    productTitle: product.title,
+    amountPaise: expectedAmount,
+    downloadUrl,
+    bundleZipUrl,
+    bundleItemLinks,
+    orderId,
+  });
+  if (emailResult.ok) {
+    await writeClient
+      .patch(orderId)
+      .set({
+        confirmationEmailSentAt: new Date().toISOString(),
+        confirmationEmailId: emailResult.id ?? undefined,
+      })
+      .commit();
+    console.info("[webhook] confirmation email sent", { orderId, email });
+  } else {
+    console.error("[webhook] confirmation email failed", {
+      orderId,
+      email,
+      error: emailResult.error,
+    });
+  }
 
   return NextResponse.json({ received: true });
 }

@@ -290,6 +290,8 @@ export const orderByPaymentIdQuery = defineQuery(`
     _id,
     status,
     email,
-    razorpayPaymentId
+    razorpayPaymentId,
+    confirmationEmailSentAt,
+    confirmationEmailId
   }
 `);

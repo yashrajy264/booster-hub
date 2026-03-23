@@ -119,7 +119,12 @@ export async function POST(request: Request) {
           url: `${baseUrl}/api/download?slug=${encodeURIComponent(product.slug)}&token=${encodeURIComponent(downloadToken)}&item=${index}`,
         }))
       : undefined;
-  if (customerEmail) {
+  const alreadyEmailed =
+    Boolean(existing && typeof existing.confirmationEmailSentAt === "string" && existing.confirmationEmailSentAt) ||
+    Boolean(existing && typeof existing.confirmationEmailId === "string" && existing.confirmationEmailId);
+  if (alreadyEmailed) {
+    console.info("[verify] confirmation email skipped: already sent", { orderId, email: customerEmail });
+  } else if (customerEmail) {
     const emailResult = await sendOrderConfirmationEmail({
       to: customerEmail,
       productTitle: product.title,
