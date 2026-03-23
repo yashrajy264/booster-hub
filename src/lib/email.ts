@@ -31,25 +31,60 @@ function getResendClient() {
 
 function buildFallbackHtml(input: ConfirmationEmailInput, amountLabel: string): string {
   const bundleLinksHtml = (input.bundleItemLinks ?? [])
-    .map((item) => `<li><a href="${item.url}">${item.title}</a></li>`)
+    .map(
+      (item) =>
+        `<li style="margin:0 0 6px"><a href="${item.url}" style="color:#1f5c50;text-decoration:underline">${item.title}</a></li>`,
+    )
     .join("");
   return `
-    <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827">
-      <h2 style="margin:0 0 12px">Order confirmed</h2>
-      <p style="margin:0 0 12px">Your payment was successful for <strong>${input.productTitle}</strong>.</p>
-      <p style="margin:0 0 6px"><strong>Amount:</strong> ${amountLabel}</p>
-      <p style="margin:0 0 16px"><strong>Order ID:</strong> ${input.orderId}</p>
-      <p style="margin:0 0 8px"><a href="${input.downloadUrl}">Download your PDF</a></p>
+    <div style="margin:0;padding:0;background:#f2fbf8;font-family:Arial,sans-serif;color:#163a33">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="padding:24px 0">
+        <tr>
+          <td align="center">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="620" style="width:620px;max-width:100%;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #d5f3ea">
+              <tr>
+                <td style="padding:24px 28px;background:linear-gradient(135deg,#0b0f1a 0%,#10192e 55%,#153a31 100%);color:#ffffff">
+                  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                    <tr>
+                      <td style="vertical-align:middle">
+                        <img src="https://res.cloudinary.com/dxagqdmxy/image/upload/v1774288643/PrepareUp_3_ad5zb8.png" alt="PrepareUp" style="height:108px;width:auto;display:block" />
+                      </td>
+                      <td align="right" style="font-size:16px;font-weight:700;opacity:0.95">PrepareUp by Exami Labs</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:28px">
+                  <h1 style="margin:0 0 12px;font-size:24px;line-height:1.3;color:#163a33">Order confirmed</h1>
+                  <p style="margin:0 0 18px;color:#365e55;font-size:15px">Your payment was successful for <strong>${input.productTitle}</strong>.</p>
+                  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#effcf6;border:1px solid #cceedd;border-radius:10px;padding:14px">
+                    <tr><td style="font-size:14px;color:#163a33"><strong>Amount:</strong> ${amountLabel}</td></tr>
+                    <tr><td style="font-size:14px;color:#163a33;padding-top:6px"><strong>Order ID:</strong> ${input.orderId}</td></tr>
+                  </table>
+                  <div style="padding-top:20px">
+                    <a href="${input.downloadUrl}" style="display:inline-block;background:#9deacb;color:#163a33;text-decoration:none;padding:12px 16px;border-radius:8px;font-size:14px;font-weight:700;border:1px solid #7ddfba">
+                      Download your PDF
+                    </a>
+                  </div>
       ${
         input.bundleZipUrl
-          ? `<p style="margin:0 0 8px"><a href="${input.bundleZipUrl}">Download full kit (.zip)</a></p>`
+          ? `<div style="padding-top:10px"><a href="${input.bundleZipUrl}" style="display:inline-block;background:#ffffff;color:#163a33;text-decoration:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;border:1px solid #7ddfba">Download full kit (.zip)</a></div>`
           : ""
       }
       ${
         bundleLinksHtml
-          ? `<div style="margin-top:8px"><p style="margin:0 0 6px"><strong>Individual PDFs</strong></p><ul style="margin:0;padding-left:18px">${bundleLinksHtml}</ul></div>`
+          ? `<div style="margin-top:12px;background:#f6fffb;border:1px solid #d5f3ea;border-radius:8px;padding:12px"><p style="margin:0 0 8px;color:#365e55;font-size:13px"><strong>Individual PDFs</strong></p><ul style="margin:0;padding-left:18px;font-size:13px;color:#1f5c50">${bundleLinksHtml}</ul></div>`
           : ""
       }
+                  <p style="margin:18px 0 6px;color:#4e7168;font-size:13px">If the button does not work, use this link:</p>
+                  <p style="margin:0 0 16px;word-break:break-all;font-size:12px"><a href="${input.downloadUrl}" style="color:#1f5c50">${input.downloadUrl}</a></p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
     </div>
   `;
 }
@@ -80,6 +115,7 @@ export async function sendOrderConfirmationEmail(
   }
 
   const templateId = process.env.RESEND_ORDER_TEMPLATE_ID?.trim() || null;
+  const templateAlias = "order-confirmation";
 
   const resend = getResendClient();
   if (!resend) {
@@ -133,6 +169,46 @@ export async function sendOrderConfirmationEmail(
       console.error("[email] template send threw, falling back", {
         orderId: input.orderId,
         templateId,
+        error: error instanceof Error ? error.message : "unknown error",
+      });
+    }
+  }
+
+  if (!templateId || templateId !== templateAlias) {
+    try {
+      const aliasResponse = await resend.emails.send({
+        from,
+        to: input.to,
+        replyTo,
+        template: {
+          id: templateAlias,
+          variables: {
+            BRAND: "PrepareUp",
+            COMPANY: "Exami Labs India",
+            PRODUCT: input.productTitle,
+            PRICE: amountLabel,
+            ORDER_ID: input.orderId,
+            INVOICE_ID: invoiceId,
+            INVOICE_DATE: invoiceDate,
+            DOWNLOAD_URL: input.downloadUrl,
+            BUNDLE_ZIP_URL: input.bundleZipUrl || "",
+            BUNDLE_LINKS_HTML: bundleLinksHtml,
+            SUPPORT_EMAIL: supportEmail || "support@exami.co.in",
+          },
+        },
+      });
+      if (!aliasResponse.error) {
+        return { ok: true, id: aliasResponse.data?.id ?? null };
+      }
+      console.error("[email] template alias send failed, using branded html fallback", {
+        orderId: input.orderId,
+        templateAlias,
+        error: aliasResponse.error.message,
+      });
+    } catch (error) {
+      console.error("[email] template alias send threw, using branded html fallback", {
+        orderId: input.orderId,
+        templateAlias,
         error: error instanceof Error ? error.message : "unknown error",
       });
     }

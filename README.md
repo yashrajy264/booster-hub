@@ -20,12 +20,18 @@ For order confirmation emails via Resend, also set:
 - `EMAIL_FROM` (must be from a verified Resend domain/sender)
 - `EMAIL_REPLY_TO` (optional)
 - `RESEND_ORDER_TEMPLATE_ID` (template id from Resend dashboard/templates API)
+- `ORDER_RESEND_API_KEY` (used by Sanity "Resend confirmation email" order action)
 
 To create/update and publish the branded `order-confirmation` template from code:
 
 ```bash
 npm run email:template:sync
 ```
+
+### Re-send confirmation from Sanity Orders
+
+In Studio, open an Order document and use the **Resend confirmation email** action.
+The first time per browser tab, Studio asks for `ORDER_RESEND_API_KEY` and keeps it in session storage.
 
 ## Sanity Studio (CMS)
 
