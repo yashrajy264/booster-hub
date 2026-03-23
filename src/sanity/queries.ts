@@ -37,6 +37,7 @@ export const examsByCategorySlugQuery = defineQuery(`
     "slug": slug.current,
     description,
     ${coverImageFields},
+    "productCount": count(*[_type == "product" && exam._ref == ^._id]),
     "categorySlug": category->slug.current,
     "categoryTitle": category->title
   }
@@ -78,7 +79,9 @@ const productCardFields = `
     featured,
     ${coverImageFields},
     "examSlug": exam->slug.current,
-    "categorySlug": exam->category->slug.current
+    "categorySlug": exam->category->slug.current,
+    "examTitle": exam->title,
+    "categoryTitle": exam->category->title
 `;
 
 /** Same as product cards plus human-readable hierarchy for catalog grid */
@@ -125,6 +128,33 @@ export const productsSearchQuery = defineQuery(`
   }
 `);
 
+export const categoriesSearchQuery = defineQuery(`
+  *[_type == "category" && defined(slug.current) && (
+    title match $pattern ||
+    (defined(description) && description match $pattern)
+  )] | order(sortOrder asc, title asc) [0...12] {
+    _id,
+    title,
+    "slug": slug.current,
+    ${coverImageFields}
+  }
+`);
+
+export const examsSearchQuery = defineQuery(`
+  *[_type == "exam" && defined(slug.current) && defined(category->slug.current) && (
+    title match $pattern ||
+    (defined(description) && description match $pattern) ||
+    category->title match $pattern
+  )] | order(category->sortOrder asc, sortOrder asc, title asc) [0...12] {
+    _id,
+    title,
+    "slug": slug.current,
+    ${coverImageFields},
+    "categorySlug": category->slug.current,
+    "categoryTitle": category->title
+  }
+`);
+
 export const productsByExamQuery = defineQuery(`
   *[_type == "product" && exam._ref == $examId] | order(sortOrder asc, _createdAt desc) {
     ${productCardFields}
@@ -150,6 +180,30 @@ export const featuredProductsQuery = defineQuery(`
 /** Public product fields only — resolved PDF URLs, no raw file refs */
 export const productBySlugPublicQuery = defineQuery(`
   *[_type == "product" && slug.current == $slug][0] {
+    _id,
+    title,
+    "slug": slug.current,
+    shortDescription,
+    body,
+    pricePaise,
+    accessMode,
+    "previewPdfUrl": coalesce(previewPdfFile.asset->url, previewPdfUrl),
+    seoTitle,
+    seoDescription,
+    ${coverImageFields},
+    "examTitle": exam->title,
+    "examSlug": exam->slug.current,
+    "categorySlug": exam->category->slug.current,
+    "categoryTitle": exam->category->title
+  }
+`);
+
+export const productByHierarchySlugsQuery = defineQuery(`
+  *[_type == "product"
+    && slug.current == $productSlug
+    && exam->slug.current == $examSlug
+    && exam->category->slug.current == $categorySlug
+  ][0] {
     _id,
     title,
     "slug": slug.current,

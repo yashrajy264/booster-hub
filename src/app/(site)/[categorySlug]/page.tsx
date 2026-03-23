@@ -3,13 +3,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { SanityImageSource } from "@sanity/image-url";
 
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { getPublicSanityClient } from "@/sanity/client";
-import { categoryBySlugQuery, examsByCategorySlugQuery } from "@/sanity/queries";
+import { categoriesQuery, categoryBySlugQuery, examsByCategorySlugQuery } from "@/sanity/queries";
 import { urlForImage } from "@/sanity/image";
 
 export const revalidate = 60;
 
 type Props = { params: Promise<{ categorySlug: string }> };
+
+function normalizeSlug(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase();
+}
 
 function categoryCoverUrl(cover: SanityImageSource | null | undefined) {
   if (!cover) return null;
@@ -20,7 +25,12 @@ export async function generateMetadata({ params }: Props) {
   const { categorySlug } = await params;
   const client = getPublicSanityClient();
   if (!client) return { title: "Category" };
-  const category = await client.fetch(categoryBySlugQuery, { slug: categorySlug });
+  let category = await client.fetch(categoryBySlugQuery, { slug: categorySlug });
+  if (!category) {
+    const categories = (await client.fetch(categoriesQuery)) as { title: string; slug: string }[];
+    const wanted = normalizeSlug(categorySlug);
+    category = categories.find((c) => normalizeSlug(c.slug) === wanted) ?? null;
+  }
   if (!category) return { title: "Not found" };
   return {
     title: category.seoTitle || category.title,
@@ -33,7 +43,20 @@ export default async function CategoryHubPage({ params }: Props) {
   const client = getPublicSanityClient();
   if (!client) notFound();
 
-  const category = await client.fetch(categoryBySlugQuery, { slug: categorySlug });
+  let category = await client.fetch(categoryBySlugQuery, { slug: categorySlug });
+  if (!category) {
+    const categories = (await client.fetch(categoriesQuery)) as {
+      _id: string;
+      title: string;
+      slug: string;
+      description?: string | null;
+      coverImage?: SanityImageSource | null;
+      seoTitle?: string | null;
+      seoDescription?: string | null;
+    }[];
+    const wanted = normalizeSlug(categorySlug);
+    category = categories.find((c) => normalizeSlug(c.slug) === wanted) ?? null;
+  }
   if (!category) notFound();
 
   const exams = await client.fetch(examsByCategorySlugQuery, { categorySlug });
@@ -42,6 +65,7 @@ export default async function CategoryHubPage({ params }: Props) {
     title: string;
     slug: string;
     description?: string | null;
+    productCount?: number | null;
   };
   const examList = exams as ExamRow[];
 
@@ -68,13 +92,7 @@ export default async function CategoryHubPage({ params }: Props) {
           </>
         ) : null}
         <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-          <nav className="text-sm text-muted-foreground">
-            <Link href="/" className="transition-colors hover:text-foreground">
-              Home
-            </Link>
-            <span className="mx-2">/</span>
-            <span className="text-foreground">{category.title}</span>
-          </nav>
+          <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: category.title }]} />
           <h1 className="mt-4 font-heading text-4xl font-normal tracking-tight text-foreground sm:text-5xl">
             {category.title}
           </h1>
@@ -93,7 +111,12 @@ export default async function CategoryHubPage({ params }: Props) {
         </p>
         <ul className="mt-10 grid gap-4 sm:grid-cols-2">
           {examList.length === 0 ? (
-            <li className="text-sm text-muted-foreground">No exams in this category yet.</li>
+            <li className="rounded-xl border border-dashed border-border/80 bg-muted/20 p-5">
+              <p className="text-sm text-muted-foreground">No exams in this category yet.</p>
+              <Link href="/browse" className="mt-2 inline-block text-sm font-medium text-primary hover:underline">
+                Browse all packs
+              </Link>
+            </li>
           ) : (
             examList.map((e) => (
               <li key={e._id}>
@@ -102,6 +125,9 @@ export default async function CategoryHubPage({ params }: Props) {
                   className="block rounded-xl border border-border/80 bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
                 >
                   <span className="font-heading text-lg text-foreground">{e.title}</span>
+                  <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
+                    {(e.productCount ?? 0) === 1 ? "1 PDF pack" : `${e.productCount ?? 0} PDF packs`}
+                  </p>
                   {e.description ? (
                     <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{e.description}</p>
                   ) : null}

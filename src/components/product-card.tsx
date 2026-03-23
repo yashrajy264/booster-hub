@@ -16,6 +16,8 @@ export type ProductCardItem = {
   accessMode: string;
   categorySlug?: string | null;
   examSlug?: string | null;
+  categoryTitle?: string | null;
+  examTitle?: string | null;
   coverImage?: SanityImageSource | null;
 };
 
@@ -25,7 +27,10 @@ function coverUrl(cover: SanityImageSource | null | undefined) {
 }
 
 export function ProductCard({ product }: { product: ProductCardItem }) {
-  const href = `/p/${product.slug}`;
+  const href =
+    product.categorySlug && product.examSlug
+      ? `/${product.categorySlug}/${product.examSlug}/${product.slug}`
+      : `/p/${product.slug}`;
   const priceLabel =
     product.accessMode === "free"
       ? "Free"
@@ -68,7 +73,8 @@ export function ProductCard({ product }: { product: ProductCardItem }) {
               href={`/${product.categorySlug}/${product.examSlug}`}
               className="hover:text-foreground"
             >
-              {product.categorySlug.replace(/-/g, " ")} · {product.examSlug.replace(/-/g, " ")}
+              {product.categoryTitle ?? product.categorySlug.replace(/-/g, " ")} ·{" "}
+              {product.examTitle ?? product.examSlug.replace(/-/g, " ")}
             </Link>
           </p>
         ) : null}

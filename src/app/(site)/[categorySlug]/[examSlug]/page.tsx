@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CatalogPagination } from "@/components/catalog-pagination";
 import { ProductCard, type ProductCardItem } from "@/components/product-card";
 import { CATALOG_PAGE_SIZE } from "@/lib/catalog-constants";
@@ -60,17 +61,13 @@ export default async function ExamPage({ params, searchParams }: Props) {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
-      <nav className="text-sm text-muted-foreground">
-        <Link href="/" className="transition-colors hover:text-foreground">
-          Home
-        </Link>
-        <span className="mx-2">/</span>
-        <Link href={`/${categorySlug}`} className="transition-colors hover:text-foreground">
-          {exam.categoryTitle}
-        </Link>
-        <span className="mx-2">/</span>
-        <span className="text-foreground">{exam.title}</span>
-      </nav>
+      <Breadcrumbs
+        items={[
+          { label: "Home", href: "/" },
+          { label: exam.categoryTitle, href: `/${categorySlug}` },
+          { label: exam.title },
+        ]}
+      />
       <h1 className="mt-4 font-heading text-3xl tracking-tight sm:text-4xl">{exam.title}</h1>
       {exam.description ? (
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
@@ -80,7 +77,12 @@ export default async function ExamPage({ params, searchParams }: Props) {
 
       <div className="mt-12 grid gap-5 sm:grid-cols-2">
         {products.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No PDFs listed for this exam yet.</p>
+          <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 p-5 sm:col-span-2">
+            <p className="text-sm text-muted-foreground">No PDFs listed for this exam yet.</p>
+            <Link href="/browse" className="mt-2 inline-block text-sm font-medium text-primary hover:underline">
+              Browse all packs
+            </Link>
+          </div>
         ) : (
           products.map((p) => <ProductCard key={p._id} product={p} />)
         )}

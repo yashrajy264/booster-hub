@@ -26,7 +26,10 @@ function coverUrl(cover: SanityImageSource | null | undefined) {
 }
 
 export function CatalogProductCard({ product }: { product: CatalogProductItem }) {
-  const href = `/p/${product.slug}`;
+  const href =
+    product.categorySlug && product.examSlug
+      ? `/${product.categorySlug}/${product.examSlug}/${product.slug}`
+      : `/p/${product.slug}`;
   const priceLabel =
     product.accessMode === "free"
       ? "Free"

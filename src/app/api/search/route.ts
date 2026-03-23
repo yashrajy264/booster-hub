@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { productsSearchQuery } from "@/sanity/queries";
+import { categoriesSearchQuery, examsSearchQuery, productsSearchQuery } from "@/sanity/queries";
 import { getPublicSanityClient } from "@/sanity/client";
 
 function toMatchPattern(q: string): string {
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const raw = searchParams.get("q")?.trim() ?? "";
   if (raw.length < 2) {
-    return NextResponse.json({ results: [] satisfies unknown[] });
+    return NextResponse.json({ categories: [], exams: [], products: [] });
   }
 
   const client = getPublicSanityClient();
@@ -27,8 +27,16 @@ export async function GET(request: Request) {
 
   const pattern = toMatchPattern(raw);
   try {
-    const results = await client.fetch(productsSearchQuery, { pattern });
-    return NextResponse.json({ results: results ?? [] });
+    const [products, categories, exams] = await Promise.all([
+      client.fetch(productsSearchQuery, { pattern }),
+      client.fetch(categoriesSearchQuery, { pattern }),
+      client.fetch(examsSearchQuery, { pattern }),
+    ]);
+    return NextResponse.json({
+      categories: categories ?? [],
+      exams: exams ?? [],
+      products: products ?? [],
+    });
   } catch {
     return NextResponse.json({ error: "Search failed" }, { status: 500 });
   }
