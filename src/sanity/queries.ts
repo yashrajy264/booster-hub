@@ -188,6 +188,8 @@ export const productBySlugPublicQuery = defineQuery(`
     pricePaise,
     accessMode,
     "previewPdfUrl": coalesce(previewPdfFile.asset->url, previewPdfUrl),
+    previewStartPage,
+    previewEndPage,
     seoTitle,
     seoDescription,
     ${coverImageFields},
@@ -212,6 +214,8 @@ export const productByHierarchySlugsQuery = defineQuery(`
     pricePaise,
     accessMode,
     "previewPdfUrl": coalesce(previewPdfFile.asset->url, previewPdfUrl),
+    previewStartPage,
+    previewEndPage,
     seoTitle,
     seoDescription,
     ${coverImageFields},
@@ -219,6 +223,19 @@ export const productByHierarchySlugsQuery = defineQuery(`
     "examSlug": exam->slug.current,
     "categorySlug": exam->category->slug.current,
     "categoryTitle": exam->category->title
+  }
+`);
+
+/** Server preview resolver: includes both manual preview and full PDF sources */
+export const productBySlugPreviewQuery = defineQuery(`
+  *[_type == "product" && slug.current == $slug][0] {
+    _id,
+    title,
+    "slug": slug.current,
+    "manualPreviewPdfUrl": coalesce(previewPdfFile.asset->url, previewPdfUrl),
+    "fullPdfUrl": coalesce(fullPdfFile.asset->url, fullPdfUrl),
+    previewStartPage,
+    previewEndPage
   }
 `);
 

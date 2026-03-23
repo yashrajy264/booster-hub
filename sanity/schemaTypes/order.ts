@@ -51,5 +51,15 @@ export const order = defineType({
       title: "Fulfilled at",
       type: "datetime",
     }),
+    defineField({
+      name: "confirmationEmailSentAt",
+      title: "Confirmation email sent at",
+      type: "datetime",
+    }),
+    defineField({
+      name: "confirmationEmailId",
+      title: "Confirmation email provider id",
+      type: "string",
+    }),
   ],
 });

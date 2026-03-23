@@ -1,6 +1,7 @@
 import Razorpay from "razorpay";
 import { NextResponse } from "next/server";
 import { signDownloadToken } from "@/lib/download-token";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 import { verifyPaymentSignature } from "@/lib/razorpay";
 import { orderByPaymentIdQuery, productBySlugPublicQuery } from "@/sanity/queries";
 import { getServerSanityClient, getWriteSanityClient } from "@/sanity/server";
@@ -68,8 +69,10 @@ export async function POST(request: Request) {
   });
 
   let orderId: string;
+  let customerEmail = "";
   if (existing?._id) {
     orderId = existing._id;
+    customerEmail = typeof existing.email === "string" ? existing.email.trim() : "";
   } else {
     const notes = payment.notes as Record<string, string> | undefined;
     const email =
@@ -90,12 +93,43 @@ export async function POST(request: Request) {
       fulfilledAt: new Date().toISOString(),
     });
     orderId = created._id as string;
+    customerEmail = email;
   }
 
   const downloadToken = await signDownloadToken({
     orderId,
     productId: product._id,
   });
+
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const downloadUrl = `${baseUrl}/api/download?slug=${encodeURIComponent(product.slug)}&token=${encodeURIComponent(downloadToken)}`;
+  if (customerEmail) {
+    const emailResult = await sendOrderConfirmationEmail({
+      to: customerEmail,
+      productTitle: product.title,
+      amountPaise: expectedAmount,
+      downloadUrl,
+      orderId,
+    });
+    if (emailResult.ok) {
+      await writeClient
+        .patch(orderId)
+        .set({
+          confirmationEmailSentAt: new Date().toISOString(),
+          confirmationEmailId: emailResult.id ?? undefined,
+        })
+        .commit();
+      console.info("[verify] confirmation email sent", { orderId, email: customerEmail });
+    } else {
+      console.error("[verify] confirmation email failed", {
+        orderId,
+        email: customerEmail,
+        error: emailResult.error,
+      });
+    }
+  } else {
+    console.warn("[verify] confirmation email skipped: missing customer email", { orderId });
+  }
 
   return NextResponse.json({ downloadToken, orderId });
 }

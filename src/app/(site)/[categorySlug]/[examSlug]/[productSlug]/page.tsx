@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import type { SanityImageSource } from "@sanity/image-url";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { PdfPreviewFrame, PdfPreviewToolbar } from "@/components/pdf-preview";
+import { PdfSamplePreview } from "@/components/pdf-preview";
 import { PortableBody } from "@/components/portable-body";
 import { buttonVariants } from "@/lib/button-variants";
 import { cn } from "@/lib/utils";
@@ -57,6 +57,17 @@ export default async function ProductPage({ params }: Props) {
       ? "Free"
       : formatInrFromPaise(Math.max(0, Number(product.pricePaise ?? 0)));
   const hero = coverUrl(product.coverImage);
+  const hasManualPreview = Boolean(product.previewPdfUrl);
+  const hasDerivedRange =
+    Number.isInteger(product.previewStartPage) &&
+    Number.isInteger(product.previewEndPage) &&
+    Number(product.previewStartPage) > 0 &&
+    Number(product.previewEndPage) >= Number(product.previewStartPage);
+  const previewUrl = hasManualPreview
+    ? product.previewPdfUrl
+    : hasDerivedRange
+      ? `/api/preview?slug=${encodeURIComponent(product.slug)}`
+      : null;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
@@ -124,23 +135,24 @@ export default async function ProductPage({ params }: Props) {
         </div>
       </div>
 
-      <section className="mt-14 space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="font-heading text-xl tracking-tight sm:text-2xl">Sample preview</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              If the preview does not load, open it in a new tab - some browsers block embedded PDFs.
-            </p>
+      {previewUrl ? (
+        <section className="mt-14 space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-heading text-xl tracking-tight sm:text-2xl">Sample preview</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                If the preview does not load, open it in a new tab - some browsers block embedded PDFs.
+              </p>
+              {!hasManualPreview && hasDerivedRange ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Preview pages: {product.previewStartPage}-{product.previewEndPage}
+                </p>
+              ) : null}
+            </div>
           </div>
-          <PdfPreviewToolbar previewUrl={product.previewPdfUrl} productTitle={product.title} />
-        </div>
-        <PdfPreviewFrame previewUrl={product.previewPdfUrl} productTitle={product.title} />
-        <p className="text-sm text-muted-foreground">
-          <a href={product.previewPdfUrl} className="font-medium text-primary underline underline-offset-4">
-            Open preview in new tab
-          </a>
-        </p>
-      </section>
+          <PdfSamplePreview previewUrl={previewUrl} productTitle={product.title} />
+        </section>
+      ) : null}
 
       {product.body ? (
         <section className="mt-16 border-t border-border/60 pt-12">

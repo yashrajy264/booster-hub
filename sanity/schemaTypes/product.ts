@@ -9,6 +9,10 @@ function hasAsset(file: unknown): boolean {
   );
 }
 
+function hasPreviewRange(value: { previewStartPage?: unknown; previewEndPage?: unknown } | undefined): boolean {
+  return Number.isInteger(value?.previewStartPage) && Number.isInteger(value?.previewEndPage);
+}
+
 export const product = defineType({
   name: "product",
   title: "PDF product",
@@ -97,10 +101,61 @@ export const product = defineType({
         Rule.custom((value, context) => {
           const parent = context.parent as {
             previewPdfFile?: unknown;
+            previewStartPage?: unknown;
+            previewEndPage?: unknown;
           };
-          if (value || hasAsset(parent?.previewPdfFile)) return true;
-          return "Upload a preview PDF or enter a preview URL";
+          if (value || hasAsset(parent?.previewPdfFile) || hasPreviewRange(parent)) return true;
+          return "Upload a preview PDF, enter a preview URL, or set a preview page range";
         }),
+    }),
+    defineField({
+      name: "previewStartPage",
+      title: "Preview start page",
+      description: "Used when no manual preview PDF/URL is provided. Must be >= 1.",
+      type: "number",
+      validation: (Rule) =>
+        Rule.integer()
+          .min(1)
+          .custom((value, context) => {
+            const parent = context.parent as {
+              previewPdfFile?: unknown;
+              previewPdfUrl?: string;
+              previewEndPage?: unknown;
+            };
+            const hasManual = Boolean(parent?.previewPdfUrl) || hasAsset(parent?.previewPdfFile);
+            const end = parent?.previewEndPage;
+            if (value == null && end != null) return "Set start page when end page is set";
+            if (!hasManual && value == null && end == null) {
+              return "Set preview start/end pages when manual preview is not provided";
+            }
+            return true;
+          }),
+    }),
+    defineField({
+      name: "previewEndPage",
+      title: "Preview end page",
+      description: "Used when no manual preview PDF/URL is provided. Must be >= start page.",
+      type: "number",
+      validation: (Rule) =>
+        Rule.integer()
+          .min(1)
+          .custom((value, context) => {
+            const parent = context.parent as {
+              previewPdfFile?: unknown;
+              previewPdfUrl?: string;
+              previewStartPage?: unknown;
+            };
+            const hasManual = Boolean(parent?.previewPdfUrl) || hasAsset(parent?.previewPdfFile);
+            const start = parent?.previewStartPage;
+            if (value == null && start != null) return "Set end page when start page is set";
+            if (value != null && Number.isInteger(start) && value < Number(start)) {
+              return "End page must be greater than or equal to start page";
+            }
+            if (!hasManual && value == null && start == null) {
+              return "Set preview start/end pages when manual preview is not provided";
+            }
+            return true;
+          }),
     }),
     defineField({
       name: "fullPdfFile",
