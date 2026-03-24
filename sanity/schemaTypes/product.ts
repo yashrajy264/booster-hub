@@ -43,7 +43,24 @@ export const product = defineType({
       name: "exam",
       title: "Exam",
       type: "reference",
+      weak: true,
       to: [{ type: "exam" }],
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "listingStatus",
+      title: "Listing status",
+      description:
+        "Published: visible on the public site. Unpublished: hidden from browse/search/checkout; paid orders and history stay intact.",
+      type: "string",
+      options: {
+        list: [
+          { title: "Published", value: "published" },
+          { title: "Unpublished", value: "unpublished" },
+        ],
+        layout: "radio",
+      },
+      initialValue: "published",
       validation: (Rule) => Rule.required(),
     }),
     defineField({

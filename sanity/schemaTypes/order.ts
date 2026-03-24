@@ -15,7 +15,10 @@ export const order = defineType({
       name: "product",
       title: "Product",
       type: "reference",
+      weak: true,
       to: [{ type: "product" }],
+      description:
+        "Weak reference: you can delete or replace the product document without breaking the order. If the product was removed, this link may show as broken in Studio.",
       validation: (Rule) => Rule.required(),
     }),
     defineField({

@@ -41,9 +41,9 @@ npm run studio
 
 This runs `sanity dev` and opens the Studio. In the **Catalog** group you can:
 
-1. **Categories** — title, slug, description, optional cover image, sort order, SEO.
-2. **Exams** — link each exam to a category; set sort order and SEO.
-3. **PDF products** — title, slug, exam, **sort order** (listing order), **cover image**, short and rich description, price/access (free vs paid).
+1. **Categories** — title, slug, **listing status** (published / unpublished), description, optional cover image, sort order, SEO. Unpublished categories are hidden from the public site.
+2. **Exams** — link each exam to a category; **exam logo** (shown on category hub cards), optional cover image, **listing status**, sort order, SEO.
+3. **PDF products** — title, slug, exam, **listing status**, **sort order** (listing order), **cover image**, short and rich description, price/access (free vs paid). Unpublished products are hidden from browse, search, and checkout; **orders use a weak reference** to the product so you can delete a product document without Sanity blocking you—old orders keep their record (the product link may appear broken in Studio if removed).
 4. **PDF delivery setup**:
    - Set **Delivery mode** to `Single PDF` for the existing one-file flow.
    - Set **Delivery mode** to `Bundle (PDF kit)` to sell multiple PDFs in one product.
@@ -55,7 +55,7 @@ Bundle download behavior:
 - **Paid bundle:** customer gets secure time-limited links for both `Download kit (.zip)` and individual PDF files.
 - **Free bundle:** same ZIP + individual file links work without payment token.
 
-Orders are listed under **Orders**.
+Orders are listed under **Orders**. Product links on orders are **weak** so Sanity allows deleting a product; older orders created before this change may still use a strong reference until you re-save the order in Studio once (or patch `product` with `_weak: true`).
 
 ## Build
 

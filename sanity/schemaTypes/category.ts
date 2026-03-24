@@ -20,6 +20,22 @@ export const category = defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
+      name: "listingStatus",
+      title: "Listing status",
+      description:
+        "Published: visible on the public site. Unpublished: hidden from browse/search; orders are unchanged. You can still delete documents if nothing blocks the reference (orders use a weak link to products).",
+      type: "string",
+      options: {
+        list: [
+          { title: "Published", value: "published" },
+          { title: "Unpublished", value: "unpublished" },
+        ],
+        layout: "radio",
+      },
+      initialValue: "published",
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
       name: "description",
       title: "Description",
       type: "text",

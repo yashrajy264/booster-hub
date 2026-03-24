@@ -23,6 +23,7 @@ type SearchExamHit = {
   slug?: string | null;
   categorySlug?: string | null;
   categoryTitle: string | null;
+  logoImage?: SanityImageSource | null;
   coverImage?: SanityImageSource | null;
 };
 
@@ -283,7 +284,7 @@ export function GlobalSearch({
                       .filter((e) => Boolean(e.slug) && Boolean(e.categorySlug))
                       .map((e) => {
                       const href = `/${e.categorySlug}/${e.slug}`;
-                      const img = thumb(e.coverImage ?? undefined);
+                      const img = thumb(e.logoImage ?? e.coverImage ?? undefined);
                       const meta = e.categoryTitle ?? "";
                       return (
                         <li key={e._id} role="option">

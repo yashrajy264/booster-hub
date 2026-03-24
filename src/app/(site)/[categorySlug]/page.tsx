@@ -21,6 +21,16 @@ function categoryCoverUrl(cover: SanityImageSource | null | undefined) {
   return urlForImage(cover)?.width(1200).height(560).fit("crop").auto("format").url() ?? null;
 }
 
+function examCardImageUrl(logo: SanityImageSource | null | undefined, cover: SanityImageSource | null | undefined) {
+  const src = logo ?? cover;
+  if (!src) return null;
+  const builder = urlForImage(src)?.fit("crop").auto("format");
+  if (!builder) return null;
+  return logo
+    ? builder.width(112).height(112).url() ?? null
+    : builder.width(160).height(100).url() ?? null;
+}
+
 export async function generateMetadata({ params }: Props) {
   const { categorySlug } = await params;
   const client = getPublicSanityClient();
@@ -66,6 +76,8 @@ export default async function CategoryHubPage({ params }: Props) {
     slug: string;
     description?: string | null;
     productCount?: number | null;
+    logoImage?: SanityImageSource | null;
+    coverImage?: SanityImageSource | null;
   };
   const examList = exams as ExamRow[];
 
@@ -118,22 +130,36 @@ export default async function CategoryHubPage({ params }: Props) {
               </Link>
             </li>
           ) : (
-            examList.map((e) => (
-              <li key={e._id}>
-                <Link
-                  href={`/${categorySlug}/${e.slug}`}
-                  className="block rounded-xl border border-border/80 bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
-                >
-                  <span className="font-heading text-lg text-foreground">{e.title}</span>
-                  <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
-                    {(e.productCount ?? 0) === 1 ? "1 PDF pack" : `${e.productCount ?? 0} PDF packs`}
-                  </p>
-                  {e.description ? (
-                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{e.description}</p>
-                  ) : null}
-                </Link>
-              </li>
-            ))
+            examList.map((e) => {
+              const examImg = examCardImageUrl(e.logoImage, e.coverImage);
+              return (
+                <li key={e._id}>
+                  <Link
+                    href={`/${categorySlug}/${e.slug}`}
+                    className="flex gap-4 rounded-xl border border-border/80 bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+                  >
+                    {examImg ? (
+                      <div
+                        className={`relative shrink-0 overflow-hidden rounded-lg bg-muted ${
+                          e.logoImage ? "size-14 sm:size-16" : "h-16 w-24 sm:h-[4.5rem] sm:w-28"
+                        }`}
+                      >
+                        <Image src={examImg} alt="" fill className="object-cover" sizes="112px" />
+                      </div>
+                    ) : null}
+                    <div className="min-w-0 flex-1">
+                      <span className="font-heading text-lg text-foreground">{e.title}</span>
+                      <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
+                        {(e.productCount ?? 0) === 1 ? "1 PDF pack" : `${e.productCount ?? 0} PDF packs`}
+                      </p>
+                      {e.description ? (
+                        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{e.description}</p>
+                      ) : null}
+                    </div>
+                  </Link>
+                </li>
+              );
+            })
           )}
         </ul>
       </div>
