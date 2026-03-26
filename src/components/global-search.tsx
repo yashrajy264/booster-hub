@@ -51,9 +51,12 @@ const ICON_STROKE = 1.25;
 export function GlobalSearch({
   className,
   variant = "light",
+  size = "default",
 }: {
   className?: string;
   variant?: "light" | "dark";
+  /** Larger input for hero / landing emphasis */
+  size?: "default" | "lg";
 }) {
   const id = useId();
   const [q, setQ] = useState("");
@@ -123,6 +126,7 @@ export function GlobalSearch({
   }, []);
 
   const isDark = variant === "dark";
+  const isLg = size === "lg";
   const totalHits =
     payload.categories.length + payload.exams.length + payload.products.length;
 
@@ -133,14 +137,19 @@ export function GlobalSearch({
       </label>
       <div
         className={cn(
-          "flex items-center gap-2 rounded-2xl border px-4 py-2.5 shadow-sm transition-colors",
+          "flex items-center gap-2 border shadow-sm transition-colors",
+          isLg ? "rounded-3xl px-5 py-3.5 sm:px-6 sm:py-4" : "rounded-2xl px-4 py-2.5",
           isDark
             ? "border-zinc-700 bg-zinc-900/80 focus-within:border-emerald-500/50"
             : "border-border bg-background/90 focus-within:border-primary/40",
         )}
       >
         <Search
-          className={cn("size-5 shrink-0", isDark ? "text-zinc-500" : "text-muted-foreground")}
+          className={cn(
+            "shrink-0",
+            isLg ? "size-6" : "size-5",
+            isDark ? "text-zinc-500" : "text-muted-foreground",
+          )}
           strokeWidth={ICON_STROKE}
           aria-hidden
         />
@@ -159,7 +168,8 @@ export function GlobalSearch({
           placeholder="Search packs, exams, categories…"
           autoComplete="off"
           className={cn(
-            "min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground",
+            "min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground",
+            isLg ? "text-lg sm:text-xl" : "text-base",
             isDark ? "text-zinc-100 placeholder:text-zinc-500" : "text-foreground",
           )}
           role="combobox"
